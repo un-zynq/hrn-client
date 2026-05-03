@@ -4,7 +4,7 @@ try {
   importScripts("/lib/workbox-sw.js");
 }
 
-const CACHE_VERSION = "v11";
+const CACHE_VERSION = "v12";
 
 self.addEventListener("install", () => {
   self.skipWaiting();
@@ -37,52 +37,35 @@ if (self.workbox) {
   workbox.core.skipWaiting();
   workbox.core.clientsClaim();
 
-  workbox.precaching.precacheAndRoute(
-    [
-      { url: "bootstrap.js", revision: CACHE_VERSION },
-      { url: "list.json", revision: CACHE_VERSION },
-      { url: "game-assets/meta.json", revision: CACHE_VERSION },
-      { url: "lib/largeEPK.js", revision: CACHE_VERSION },
-      { url: "lib/launcher.js", revision: CACHE_VERSION },
-      { url: "lib/sha256.js", revision: CACHE_VERSION },
-      { url: "lib/util.js", revision: CACHE_VERSION },
-      { url: "lib/wispcraft.js", revision: CACHE_VERSION },
-      { url: "settings/wisp_urls.json", revision: CACHE_VERSION },
-      { url: "index.html", revision: CACHE_VERSION }
-    ],
-    {
-      fallbackToNetwork: true
-    }
-  );
+  // ❌ NO precache (everything dynamic)
+  workbox.precaching.precacheAndRoute([]);
 
-  const safeFallback = async (params) => {
-    try {
-      const res = await workbox.strategies.NetworkFirst({
-        cacheName: "eaglercraft-html",
-        networkTimeoutSeconds: 3
-      }).handle(params);
-
-      if (res) return res;
-
-      return (await caches.match("index.html")) || fetch("index.html");
-    } catch (e) {
-      return (await caches.match("index.html")) || fetch("index.html");
-    }
-  };
-
+  // 🌐 HTML / navigation → ALWAYS network, no cache
   workbox.routing.registerRoute(
     ({ request }) => request.mode === "navigate",
-    safeFallback
+    async (params) => {
+      try {
+        return await fetch(params.request);
+      } catch (e) {
+        return caches.match("index.html");
+      }
+    }
   );
 
+  // ❌ scripts/styles: no cache
   workbox.routing.registerRoute(
     ({ request }) =>
       request.destination === "script" || request.destination === "style",
-    new workbox.strategies.StaleWhileRevalidate({
-      cacheName: "eaglercraft-assets",
-    })
+    async (params) => fetch(params.request)
   );
 
+  // ❌ JSON: no cache
+  workbox.routing.registerRoute(
+    ({ url }) => url.pathname.endsWith(".json"),
+    async (params) => fetch(params.request)
+  );
+
+  // ✅ ONLY .seg files cached
   workbox.routing.registerRoute(
     ({ url }) => url.pathname.endsWith(".seg"),
     new workbox.strategies.CacheFirst({
@@ -97,30 +80,6 @@ if (self.workbox) {
           maxEntries: 20,
         }),
       ],
-    })
-  );
-
-  workbox.routing.registerRoute(
-    ({ url }) =>
-      url.pathname.endsWith(".epk") || url.pathname.endsWith(".epw"),
-    new workbox.strategies.CacheFirst({
-      cacheName: "eaglercraft-epk",
-      plugins: [
-        new workbox.cacheableResponse.CacheableResponsePlugin({
-          statuses: [0, 200],
-        }),
-        new workbox.rangeRequests.RangeRequestsPlugin(),
-        new workbox.expiration.ExpirationPlugin({
-          maxAgeSeconds: 30 * 24 * 60 * 60,
-        }),
-      ],
-    })
-  );
-
-  workbox.routing.registerRoute(
-    ({ url }) => url.pathname.endsWith(".json"),
-    new workbox.strategies.NetworkFirst({
-      cacheName: "eaglercraft-json",
     })
   );
 }
