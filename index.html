@@ -3,335 +3,305 @@
 
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta
-            name="viewport"
-            content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"
-        />
-        <title>HRN Client</title>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" />
+    <title>HRN Client</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
+    
+    <script>
+        (function () {
+            "use strict";
+            const urlParams = new URLSearchParams(window.location.search);
+            window.QUALITY = parseFloat(urlParams.get("q")) || 0.8;
 
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-        <link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
-        />
-
-        <script>
-            (function () {
-                "use strict";
-
-                const urlParams = new URLSearchParams(window.location.search);
-                window.QUALITY = parseFloat(urlParams.get("q")) || 0.8;
-
-                try {
-                    Object.defineProperty(window, "devicePixelRatio", {
-                        get: function () {
-                            return window.QUALITY;
-                        },
-                        set: function () {},
+            try {
+                Object.defineProperty(window, "devicePixelRatio", {
+                    get: function () { return window.QUALITY; },
+                    set: function () {},
+                    configurable: false,
+                });
+                if (window.screen) {
+                    Object.defineProperty(window.screen, "devicePixelRatio", {
+                        get: function () { return window.QUALITY; },
                         configurable: false,
                     });
-                    if (window.screen) {
-                        Object.defineProperty(
-                            window.screen,
-                            "devicePixelRatio",
-                            {
-                                get: function () {
-                                    return window.QUALITY;
-                                },
-                                configurable: false,
-                            },
-                        );
-                    }
-                } catch (e) {}
+                }
+            } catch (e) {}
 
-                var origGetContext = HTMLCanvasElement.prototype.getContext;
-                HTMLCanvasElement.prototype.getContext = function (
-                    type,
-                    attrs,
-                ) {
-                    if (
-                        type === "webgl" ||
-                        type === "webgl2" ||
-                        type === "experimental-webgl"
-                    ) {
-                        attrs = attrs || {};
-                        attrs.powerPreference = "high-performance";
-                        return origGetContext.call(this, type, attrs);
-                    }
+            var origGetContext = HTMLCanvasElement.prototype.getContext;
+            HTMLCanvasElement.prototype.getContext = function (type, attrs) {
+                if (type === "webgl" || type === "webgl2" || type === "experimental-webgl") {
+                    attrs = attrs || {};
+                    attrs.powerPreference = "high-performance";
                     return origGetContext.call(this, type, attrs);
-                };
+                }
+                return origGetContext.call(this, type, attrs);
+            };
 
-                var isTabVisible = !document.hidden;
-                document.addEventListener(
-                    "visibilitychange",
-                    function () {
-                        isTabVisible = !document.hidden;
-                    },
-                    true,
-                );
+            var isTabVisible = !document.hidden;
+            document.addEventListener("visibilitychange", () => isTabVisible = !document.hidden, true);
 
-                var origRAF = window.requestAnimationFrame;
-                window.requestAnimationFrame = function (callback) {
-                    return origRAF(function (timestamp) {
-                        if (!isTabVisible) return;
-                        callback(timestamp);
-                    });
-                };
-
-                [
-                    "contextmenu",
-                    "dragstart",
-                    "selectstart",
-                    "gesturestart",
-                    "gesturechange",
-                    "gestureend",
-                ].forEach(function (evt) {
-                    document.addEventListener(
-                        evt,
-                        function (e) {
-                            e.preventDefault();
-                            e.stopPropagation();
-                        },
-                        true,
-                    );
+            var origRAF = window.requestAnimationFrame;
+            window.requestAnimationFrame = function (callback) {
+                return origRAF(function (timestamp) {
+                    if (!isTabVisible) return;
+                    callback(timestamp);
                 });
-            })();
-        </script>
+            };
 
-        <script src="lib/launcher.js"></script>
-        <script src="lib/util.js"></script>
-        <script src="lib/wispcraft.js"></script>
-        <script src="lib/largeEPK.js"></script>
-        <script src="lib/sha256.js"></script>
-        <script src="bootstrap.js"></script>
+            ["contextmenu", "dragstart", "selectstart", "gesturestart", "gesturechange", "gestureend"]
+                .forEach(evt => document.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, true));
+        })();
+    </script>
 
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-            body,
-            html {
-                width: 100vw;
-                height: 100vh;
-                overflow: hidden;
-                font-family: "Inter", sans-serif;
-                background: #000;
-                color: #ffffff;
-                user-select: none;
-                -webkit-user-select: none;
-                touch-action: none;
-            }
-            .bg-overlay {
-                background: url("./game-assets/background.jpg") no-repeat center
-                    center fixed;
-                background-size: cover;
-            }
-            #loading-container {
-                position: fixed;
-                inset: 0;
-                z-index: 10;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            #loading-content {
-                text-align: center;
-                background: rgba(0, 0, 0, 0.75);
-                padding: 45px;
-                border-radius: 24px;
-                backdrop-filter: blur(12px);
-                -webkit-backdrop-filter: blur(12px);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-                box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            }
-            #action-block {
-                font-size: 24px;
-                font-weight: 600;
-                margin-bottom: 8px;
-                letter-spacing: 1px;
-                color: #fff;
-            }
-            #context-block {
-                font-size: 14px;
-                color: #aaa;
-                margin-bottom: 35px;
-            }
-            #progress-bar-container {
-                width: 320px;
-                height: 6px;
-                background: rgba(255, 255, 255, 0.1);
-                border-radius: 10px;
-                overflow: hidden;
-                margin: 0 auto;
-            }
-            #progress-bar {
-                height: 100%;
-                width: 0%;
-                background: linear-gradient(90deg, #0071e3, #40a9ff);
-                transition: width 0.15s ease-out;
-            }
-            #progress-text {
-                margin-top: 15px;
-                font-size: 14px;
-                font-weight: 500;
-                color: rgba(255, 255, 255, 0.8);
-            }
-            #game_frame {
-                position: fixed;
-                inset: 0;
-                z-index: 5;
-                contain: strict;
-            }
-            #game_frame canvas {
-                width: 100% !important;
-                height: 100% !important;
-                display: block;
-                image-rendering: pixelated;
-                image-rendering: crisp-edges;
-                -ms-interpolation-mode: nearest-neighbor;
-                image-rendering: -webkit-optimize-contrast;
-            }
-            #error-popup {
-                display: none;
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                background: #1c1c1e;
-                padding: 30px;
-                border-radius: 16px;
-                z-index: 100;
-                text-align: center;
-                border: 1px solid #3a3a3c;
-                box-shadow: 0 0 30px rgba(0, 0, 0, 1);
-            }
-            #reload-btn {
-                background: #0071e3;
-                color: white;
-                border: none;
-                padding: 12px 24px;
-                border-radius: 8px;
-                font-weight: 600;
-                cursor: pointer;
-                margin-top: 20px;
-            }
-        </style>
-    </head>
-    <body id="game_frame">
-        <div id="loading-container" class="bg-overlay">
-            <div id="loading-content">
-                <h2 id="action-block">HRN Client</h2>
-                <h2 id="context-block">Loading...</h2>
-                <div id="progress-bar-container">
-                    <div id="progress-bar"></div>
-                </div>
-                <div id="progress-text">0%</div>
+    <script src="lib/launcher.js"></script>
+    <script src="lib/util.js"></script>
+    <script src="lib/wispcraft.js"></script>
+    <script src="lib/largeEPK.js"></script>
+    <script src="lib/sha256.js"></script>
+    <script src="bootstrap.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: "Inter", sans-serif;
+            background: #000;
+            color: #ffffff;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        .bg-overlay {
+            background: url("./game-assets/background.jpg") no-repeat center center fixed;
+            background-size: cover;
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
+        #loading-container {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #loading-content {
+            text-align: center;
+            background: rgba(0, 0, 0, 0.55);    
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 45px 55px;
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+            max-width: 380px;
+        }
+
+        #action-block {
+            font-size: 26px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        #context-block {
+            font-size: 15px;
+            color: #bbb;
+            margin-bottom: 32px;
+        }
+
+        #progress-bar-container {
+            width: 320px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 0 auto;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0071e3, #40a9ff);
+            transition: width 0.18s ease-out;
+        }
+
+        #progress-text {
+            margin-top: 14px;
+            font-size: 14.5px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.85);
+        }
+
+        #game_frame {
+            position: fixed;
+            inset: 0;
+            z-index: 5;
+            contain: strict;
+        }
+
+        #game_frame canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+            -ms-interpolation-mode: nearest-neighbor;
+        }
+
+        /* Error popup - nu dezelfde stijl als de loading box */
+        #error-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            padding: 35px 45px;
+            border-radius: 24px;
+            z-index: 100;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            max-width: 380px;
+        }
+
+        #error-popup h3 {
+            color: #ff453a;
+            margin-bottom: 12px;
+            font-size: 22px;
+        }
+
+        #error-message {
+            color: #ddd;
+            line-height: 1.5;
+        }
+
+        #reload-btn {
+            background: #0071e3;
+            color: white;
+            border: none;
+            padding: 13px 28px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 22px;
+            transition: background 0.2s;
+        }
+
+        #reload-btn:hover {
+            background: #0085ff;
+        }
+    </style>
+</head>
+<body id="game_frame">
+    <div class="bg-overlay"></div>
+
+    <div id="loading-container">
+        <div id="loading-content">
+            <h2 id="action-block">HRN Client</h2>
+            <h2 id="context-block">Loading...</h2>
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
             </div>
+            <div id="progress-text">0%</div>
         </div>
+    </div>
 
-        <div id="error-popup">
-            <h3 style="color: #ff453a; margin-bottom: 10px">
-                Connection Error
-            </h3>
-            <p id="error-message" style="color: #ccc">
-                Missing assets or no internet connection.
-            </p>
-            <button id="reload-btn" onclick="location.reload()">
-                Try Again
-            </button>
-        </div>
+    <div id="error-popup">
+        <h3>Connection Error</h3>
+        <p id="error-message">Missing assets or no internet connection.</p>
+        <button id="reload-btn" onclick="location.reload()">Try Again</button>
+    </div>
 
-        <script>
-            "use strict";
-            (function () {
-                window.updateProgress = function (percent) {
-                    var rounded = Math.min(Math.round(percent || 0), 100);
-                    var bar = document.getElementById("progress-bar");
-                    var text = document.getElementById("progress-text");
-                    if (bar) bar.style.width = rounded + "%";
-                    if (text) text.textContent = rounded + "%";
-                };
+    <script>
+        "use strict";
+        (function () {
+            window.updateProgress = function (percent) {
+                const rounded = Math.min(Math.round(percent || 0), 100);
+                const bar = document.getElementById("progress-bar");
+                const text = document.getElementById("progress-text");
+                if (bar) bar.style.width = rounded + "%";
+                if (text) text.textContent = rounded + "%";
+            };
 
-                function showErrorPopup(msg) {
-                    var popup = document.getElementById("error-popup");
-                    if (msg)
-                        document.getElementById("error-message").textContent =
-                            msg;
-                    popup.style.display = "block";
+            function showErrorPopup(msg) {
+                const popup = document.getElementById("error-popup");
+                if (msg) document.getElementById("error-message").textContent = msg;
+                popup.style.display = "block";
+            }
+
+            function hideLoadingScreen() {
+                const loader = document.getElementById("loading-container");
+                if (!loader) return;
+                loader.style.transition = "opacity 0.7s ease";
+                loader.style.opacity = "0";
+                setTimeout(() => loader.remove(), 700);
+            }
+
+            window.addEventListener("load", async () => {
+                if ("serviceWorker" in navigator) {
+                    try { await navigator.serviceWorker.register("sw.js"); } catch (err) {}
                 }
 
-                function hideLoadingScreen() {
-                    const loader = document.getElementById("loading-container");
-                    if (!loader) return;
-                    loader.style.transition = "opacity 0.6s ease";
-                    loader.style.opacity = "0";
-                    setTimeout(() => loader.remove(), 600);
+                try {
+                    const epk = await loadCachedAssetUI("./game-assets/meta.json", true, "1.8.8-wasm")
+                        .catch(async () => await loadCachedAssetUI("./game-assets/meta.json", true, "1.8.8-wasm"));
+
+                    const listResponse = await fetch("list.json");
+                    const listData = await listResponse.json();
+
+                    const params = {
+                        demoMode: false,
+                        localesURI: "lang/",
+                        container: "game_frame",
+                        assetsURI: epk,
+                        worldsDB: "worlds",
+                        ...listData,
+                    };
+
+                    parseParams(params);
+                    window.eaglercraftXOpts = params;
+
+                    await new Promise(res => {
+                        if (window["wispcraft-ServerReady"]) window["wispcraft-ServerReady"].then(res);
+                        else setTimeout(res, 800);
+                    });
+
+                    hideLoadingScreen();
+                    main();
+
+                    setTimeout(() => {
+                        if (window.__eaglercraftXBlobURLs) {
+                            window.__eaglercraftXBlobURLs.forEach(url => {
+                                try { URL.revokeObjectURL(url); } catch (e) {}
+                            });
+                            window.__eaglercraftXBlobURLs.length = 0;
+                        }
+                    }, 15000);
+                } catch (err) {
+                    console.error("Boot Error:", err);
+                    showErrorPopup("Could not load game assets. Try again or check your internet.");
                 }
-
-                window.addEventListener("load", async () => {
-                    if ("serviceWorker" in navigator) {
-                        try {
-                            await navigator.serviceWorker.register("sw.js");
-                        } catch (err) {}
-                    }
-
-                    try {
-                        const epk = await loadCachedAssetUI(
-                            "./game-assets/meta.json",
-                            true,
-                            "1.8.8-wasm"
-                        ).catch(async (err) => {
-                            console.warn("First attempt failed, retrying...", err);
-                            return await loadCachedAssetUI("./game-assets/meta.json", true, "1.8.8-wasm");
-                        });
-
-                        const listResponse = await fetch("list.json");
-                        const listData = await listResponse.json();
-
-                        const params = {
-                            demoMode: false,
-                            localesURI: "lang/",
-                            container: "game_frame",
-                            assetsURI: epk,
-                            worldsDB: "worlds",
-                            ...listData,
-                        };
-
-                        parseParams(params);
-                        window.eaglercraftXOpts = params;
-
-                        await new Promise((res) => {
-                            if (window["wispcraft-ServerReady"])
-                                window["wispcraft-ServerReady"].then(res);
-                            else setTimeout(res, 800);
-                        });
-
-                        hideLoadingScreen();
-                        main();
-
-                        setTimeout(function () {
-                            if (window.__eaglercraftXBlobURLs) {
-                                window.__eaglercraftXBlobURLs.forEach(function (url) {
-                                    try { URL.revokeObjectURL(url); } catch (e) {}
-                                });
-                                window.__eaglercraftXBlobURLs.length = 0;
-                            }
-                            if (window.__eaglercraftXLoaderContextPre) {
-                                window.__eaglercraftXLoaderContextPre.theEPWFileBuffer = null;
-                            }
-                        }, 15000);
-
-                    } catch (err) {
-                        console.error("Boot Error:", err);
-                        showErrorPopup("Kon game assets niet laden. Probeer opnieuw of check je internet.");
-                    }
-                });
-            })();
-        </script>
-    </body>
+            });
+        })();
+    </script>
+</body>
 </html>
