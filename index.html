@@ -10,13 +10,12 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" />
-    
+   
     <script>
         (function () {
             "use strict";
             const urlParams = new URLSearchParams(window.location.search);
             window.QUALITY = parseFloat(urlParams.get("q")) || 0.8;
-
             try {
                 Object.defineProperty(window, "devicePixelRatio", {
                     get: function () { return window.QUALITY; },
@@ -30,7 +29,6 @@
                     });
                 }
             } catch (e) {}
-
             var origGetContext = HTMLCanvasElement.prototype.getContext;
             HTMLCanvasElement.prototype.getContext = function (type, attrs) {
                 if (type === "webgl" || type === "webgl2" || type === "experimental-webgl") {
@@ -40,10 +38,8 @@
                 }
                 return origGetContext.call(this, type, attrs);
             };
-
             var isTabVisible = !document.hidden;
             document.addEventListener("visibilitychange", () => isTabVisible = !document.hidden, true);
-
             var origRAF = window.requestAnimationFrame;
             window.requestAnimationFrame = function (callback) {
                 return origRAF(function (timestamp) {
@@ -51,12 +47,10 @@
                     callback(timestamp);
                 });
             };
-
             ["contextmenu", "dragstart", "selectstart", "gesturestart", "gesturechange", "gestureend"]
                 .forEach(evt => document.addEventListener(evt, e => { e.preventDefault(); e.stopPropagation(); }, true));
         })();
     </script>
-
     <script src="lib/launcher.js"></script>
     <script src="lib/util.js"></script>
     <script src="lib/wispcraft.js"></script>
@@ -99,16 +93,16 @@
             justify-content: center;
         }
 
-        #loading-content {
+        #loading-content, #error-popup {
+            width: 380px;
             text-align: center;
-            background: rgba(0, 0, 0, 0.55);    
+            background: rgba(0, 0, 0, 0.55);
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
-            padding: 45px 55px;
+            padding: 45px 50px;
             border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.12);
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-            max-width: 380px;
         }
 
         #action-block {
@@ -160,26 +154,15 @@
             display: block;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            -ms-interpolation-mode: nearest-neighbor;
         }
 
-        /* Error popup - nu dezelfde stijl als de loading box */
         #error-popup {
             display: none;
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            padding: 35px 45px;
-            border-radius: 24px;
             z-index: 100;
-            text-align: center;
-            border: 1px solid rgba(255, 255, 255, 0.12);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
-            max-width: 380px;
         }
 
         #error-popup h3 {
