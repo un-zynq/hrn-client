@@ -1,9 +1,14 @@
 {
   "servers": [
-    { "addr": "wss://q13x.eagler.host", "name": "TopEaglerServers.com" },
+    { "addr": "settings://", "name": "Wispcraft Settings" },
     { "addr": "wss://mc.voidsent.net", "name": "Voidsent MC" },
+    {
+      "addr": "java://mc.hypixel.net/?require_online=1",
+      "name": "Hypixel (Proxied)"
+    },
     { "addr": "wss://krypticmc.net", "name": "KrypticMC" },
-    { "addr": "wss://mc.arch.lol", "name": "ArchMC" }
+    { "addr": "wss://mc.arch.lol", "name": "ArchMC" },
+    { "addr": "wss://q13x.eagler.host", "name": "TopEaglerServers.com" }
   ],
   "relays": [
     {
