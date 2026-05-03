@@ -3,7 +3,7 @@ importScripts(
 );
 
 if (workbox) {
-  const CACHE_VERSION = "v9";
+  const CACHE_VERSION = "v10";
   workbox.core.setCacheNameDetails({
     prefix: "eaglercraft",
     suffix: CACHE_VERSION,
@@ -15,7 +15,6 @@ if (workbox) {
   workbox.core.clientsClaim();
 
   workbox.precaching.precacheAndRoute([
-    { url: "index.html", revision: CACHE_VERSION },
     { url: "bootstrap.js", revision: CACHE_VERSION },
     { url: "list.json", revision: CACHE_VERSION },
     { url: "game-assets/meta.json", revision: CACHE_VERSION },
