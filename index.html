@@ -248,96 +248,94 @@
         </div>
 
         <script>
-            "use strict";
-            (function () {
-                window.updateProgress = function (percent) {
-                    var rounded = Math.min(Math.round(percent || 0), 100);
-                    var bar = document.getElementById("progress-bar");
-                    var text = document.getElementById("progress-text");
-                    if (bar) bar.style.width = rounded + "%";
-                    if (text) text.textContent = rounded + "%";
+    "use strict";
+    (function () {
+        window.updateProgress = function (percent) {
+            var rounded = Math.min(Math.round(percent || 0), 100);
+            var bar = document.getElementById("progress-bar");
+            var text = document.getElementById("progress-text");
+            if (bar) bar.style.width = rounded + "%";
+            if (text) text.textContent = rounded + "%";
+        };
+
+        function showErrorPopup(msg) {
+            var popup = document.getElementById("error-popup");
+            if (msg)
+                document.getElementById("error-message").textContent = msg;
+            popup.style.display = "block";
+        }
+
+        // Nieuwe helper
+        function hideLoadingScreen() {
+            const loader = document.getElementById("loading-container");
+            if (!loader) return;
+            loader.style.transition = "opacity 0.6s ease";
+            loader.style.opacity = "0";
+            setTimeout(() => loader.remove(), 600);
+        }
+
+        window.addEventListener("load", async () => {
+            // Service Worker
+            if ("serviceWorker" in navigator) {
+                try {
+                    await navigator.serviceWorker.register("sw.js");
+                } catch (err) {}
+            }
+
+            try {
+                const epk = await loadCachedAssetUI(
+                    "./game-assets/meta.json",
+                    true,
+                    "1.8.8-wasm"
+                ).catch((err) => {
+                    console.warn("loadCachedAssetUI failed, retrying once...", err);
+                    // Eén retry voor eerste load
+                    return loadCachedAssetUI("./game-assets/meta.json", true, "1.8.8-wasm");
+                });
+
+                const listResponse = await fetch("list.json");
+                const listData = await listResponse.json();
+
+                const params = {
+                    demoMode: false,
+                    localesURI: "lang/",
+                    container: "game_frame",
+                    assetsURI: epk,
+                    worldsDB: "worlds",
+                    ...listData,
                 };
 
-                function showErrorPopup(msg) {
-                    var popup = document.getElementById("error-popup");
-                    if (msg)
-                        document.getElementById("error-message").textContent =
-                            msg;
-                    popup.style.display = "block";
-                }
+                parseParams(params);
+                window.eaglercraftXOpts = params;
 
-                window.addEventListener("load", async () => {
-                    // Service Worker
-                    if ("serviceWorker" in navigator) {
-                        try {
-                            await navigator.serviceWorker.register("sw.js");
-                        } catch (err) {}
-                    }
-
-                    try {
-                        const [epk] = await Promise.all([
-                            loadCachedAssetUI(
-                                "./game-assets/meta.json",
-                                true,
-                                "1.8.8-wasm",
-                            ).catch((err) => {
-                                showErrorPopup("Missing game files.");
-                                throw err;
-                            }),
-                        ]);
-
-                        const listResponse = await fetch("list.json");
-                        const listData = await listResponse.json();
-
-                        const params = {
-                            demoMode: false,
-                            localesURI: "lang/",
-                            container: "game_frame",
-                            assetsURI: epk,
-                            worldsDB: "worlds",
-                            ...listData,
-                        };
-
-                        parseParams(params);
-                        window.eaglercraftXOpts = params;
-
-                        await new Promise((res) => {
-                            if (window["wispcraft-ServerReady"])
-                                window["wispcraft-ServerReady"].then(res);
-                            else setTimeout(res, 500);
-                        });
-
-                        const loader =
-                            document.getElementById("loading-container");
-                        loader.style.transition = "opacity 0.6s ease";
-                        loader.style.opacity = "0";
-                        setTimeout(() => loader.remove(), 600);
-
-                        main();
-
-                        // Post-launch cleanup: free blob URLs and EPW buffer
-                        // after the game has fully started
-                        setTimeout(function () {
-                            if (window.__eaglercraftXBlobURLs) {
-                                window.__eaglercraftXBlobURLs.forEach(
-                                    function (url) {
-                                        try {
-                                            URL.revokeObjectURL(url);
-                                        } catch (e) {}
-                                    },
-                                );
-                                window.__eaglercraftXBlobURLs.length = 0;
-                            }
-                            if (window.__eaglercraftXLoaderContextPre) {
-                                window.__eaglercraftXLoaderContextPre.theEPWFileBuffer =
-                                    null;
-                            }
-                        }, 15000);
-                    } catch (err) {
-                        console.error("Boot Error:", err);
-                    }
+                await new Promise((res) => {
+                    if (window["wispcraft-ServerReady"])
+                        window["wispcraft-ServerReady"].then(res);
+                    else setTimeout(res, 800);
                 });
-            })();
-        </script>
+
+                hideLoadingScreen();
+                main();
+
+                // Post-launch cleanup
+                setTimeout(function () {
+                    if (window.__eaglercraftXBlobURLs) {
+                        window.__eaglercraftXBlobURLs.forEach(function (url) {
+                            try { URL.revokeObjectURL(url); } catch (e) {}
+                        });
+                        window.__eaglercraftXBlobURLs.length = 0;
+                    }
+                    if (window.__eaglercraftXLoaderContextPre) {
+                        window.__eaglercraftXLoaderContextPre.theEPWFileBuffer = null;
+                    }
+                }, 15000);
+
+            } catch (err) {
+                console.error("Boot Error:", err);
+                showErrorPopup("Kon game assets niet laden. Probeer opnieuw of check je internet.");
+            }
+        });
+    })();
+</script>
     </body>
 </html>
