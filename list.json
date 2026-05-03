@@ -1,0 +1,18 @@
+{
+  "servers": [
+    { "addr": "wss://q13x.eagler.host", "name": "TopEaglerServers.com" },
+    { "addr": "wss://mc.voidsent.net", "name": "Voidsent MC" },
+    { "addr": "wss://krypticmc.net", "name": "KrypticMC" },
+    { "addr": "wss://mc.arch.lol", "name": "ArchMC" }
+  ],
+  "relays": [
+    {
+      "addr": "wss://relay.lax1dude.net/",
+      "comment": "lax1dude relay"
+    },
+    {
+      "addr": "wss://relay.shhnowisnottheti.me/",
+      "comment": "ayunami relay #1"
+    }
+  ]
+}

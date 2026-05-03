@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta
+            name="description"
+            content="Benchmark and select the best Wisp proxy for EaglercraftX"
+        />
+        <style>
+            :root {
+                --bg: #ffffff;
+                --text: #1a1a1a;
+                --secondary: #666666;
+                --accent: #2563eb;
+                --success: #10b981;
+                --error: #ef4444;
+                --border: #eeeeee;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                :root {
+                    --bg: #111111;
+                    --text: #eeeeee;
+                    --secondary: #999999;
+                    --accent: #3b82f6;
+                    --border: #222222;
+                }
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    sans-serif;
+                background-color: var(--bg);
+                color: var(--text);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 100vh;
+                margin: 0;
+                line-height: 1.5;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 450px;
+                padding: 24px;
+            }
+
+            h1 {
+                font-size: 1.5rem;
+                font-weight: 700;
+                margin: 0 0 16px 0;
+                text-align: center;
+            }
+
+            .info-card {
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                padding: 16px;
+                margin-bottom: 24px;
+                font-size: 0.9rem;
+            }
+
+            .status-text {
+                color: var(--secondary);
+                text-align: center;
+                margin-bottom: 16px;
+                font-size: 0.85rem;
+            }
+
+            .region-row {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 10px 0;
+                border-bottom: 1px solid var(--border);
+            }
+
+            .region-info {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .region-name {
+                font-weight: 500;
+                font-size: 0.95rem;
+            }
+
+            .region-ping {
+                font-size: 0.8rem;
+                color: var(--secondary);
+            }
+
+            .btn {
+                background: var(--accent);
+                color: white;
+                padding: 6px 14px;
+                border-radius: 6px;
+                text-decoration: none;
+                font-weight: 500;
+                font-size: 0.85rem;
+                border: none;
+                cursor: pointer;
+                transition: opacity 0.2s;
+            }
+
+            .btn:hover {
+                opacity: 0.9;
+            }
+            .btn.active {
+                background: var(--success);
+                cursor: default;
+            }
+            .btn.secondary {
+                background: transparent;
+                border: 1px solid var(--border);
+                color: var(--text);
+            }
+
+            .custom-section {
+                margin-top: 24px;
+                padding-top: 16px;
+                border-top: 2px dashed var(--border);
+            }
+
+            input {
+                width: 100%;
+                padding: 10px;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                background: var(--bg);
+                color: var(--text);
+                margin-bottom: 10px;
+                box-sizing: border-box;
+            }
+
+            footer {
+                margin-top: 32px;
+                text-align: center;
+            }
+
+            .back-link {
+                color: var(--secondary);
+                text-decoration: none;
+                font-size: 0.85rem;
+            }
+
+            .back-link:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Region Selector</h1>
+
+            <div class="info-card">
+                This tool benchmarks Wisp proxies. The fastest server is
+                auto-selected for the best EaglercraftX experience.
+            </div>
+
+            <div id="status" class="status-text">Initializing...</div>
+
+            <div id="results-list"></div>
+
+            <div class="custom-section">
+                <input
+                    type="text"
+                    id="custom-url"
+                    placeholder="wss://your-custom-proxy.com"
+                />
+                <button id="custom-btn" class="btn" style="width: 100%">
+                    Use Custom URL
+                </button>
+            </div>
+
+            <footer>
+                <a href="././" class="back-link">← Back to EaglercraftX</a>
+            </footer>
+        </div>
+
+        <script>
+            (function () {
+                const WISP_URLS_PATH = "./wisp_urls.json";
+                const STORAGE_KEY = "wispcraft_wispurl";
+                const FETCH_TIMEOUT_MS = 5000;
+
+                const statusEl = document.getElementById("status");
+                const resultsList = document.getElementById("results-list");
+                const customUrlInput = document.getElementById("custom-url");
+                const customBtn = document.getElementById("custom-btn");
+
+                function formatPing(ms) {
+                    return Math.round(ms / 2) + "ms";
+                }
+
+                async function measureFetch(url) {
+                    const controller = new AbortController();
+                    const timer = setTimeout(
+                        () => controller.abort(),
+                        FETCH_TIMEOUT_MS,
+                    );
+                    const t0 = performance.now();
+                    try {
+                        await fetch(url, {
+                            method: "GET",
+                            mode: "no-cors",
+                            cache: "no-store",
+                            signal: controller.signal,
+                        });
+                        clearTimeout(timer);
+                        return {
+                            ms: Math.round(performance.now() - t0),
+                            ok: true,
+                        };
+                    } catch (e) {
+                        clearTimeout(timer);
+                        return {
+                            ms: Math.round(performance.now() - t0),
+                            ok: false,
+                        };
+                    }
+                }
+
+                function selectUrl(wssUrl) {
+                    localStorage.setItem(STORAGE_KEY, wssUrl);
+                    updateUI(wssUrl);
+                }
+
+                function updateUI(activeUrl) {
+                    const buttons = document.querySelectorAll(".region-btn");
+                    buttons.forEach((btn) => {
+                        if (btn.getAttribute("data-url") === activeUrl) {
+                            btn.textContent = "Selected";
+                            btn.classList.add("active");
+                        } else {
+                            btn.textContent = "Select";
+                            btn.classList.remove("active");
+                        }
+                    });
+                }
+
+                async function run() {
+                    try {
+                        statusEl.textContent = "Loading regions...";
+                        const response = await fetch(WISP_URLS_PATH);
+                        const config = await response.json();
+                        const regions = config.regions || [];
+                        const baseUrl = config.base_url;
+
+                        statusEl.textContent = "Benchmarking...";
+                        const saved = localStorage.getItem(STORAGE_KEY);
+
+                        const results = await Promise.all(
+                            regions.map(async (reg) => {
+                                const httpsUrl =
+                                    baseUrl.replace("{region}", reg.id) + "/";
+                                const wssUrl =
+                                    "wss://" + httpsUrl.replace("https://", "");
+                                const res = await measureFetch(httpsUrl);
+                                return { ...reg, wssUrl, ...res };
+                            }),
+                        );
+
+                        statusEl.textContent = "Benchmark complete.";
+                        resultsList.innerHTML = "";
+
+                        const okResults = results.filter((r) => r.ok);
+                        const best = okResults.length
+                            ? okResults.reduce((a, b) => (a.ms < b.ms ? a : b))
+                            : results[0];
+
+                        results.forEach((res) => {
+                            const row = document.createElement("div");
+                            row.className = "region-row";
+                            row.innerHTML = `
+                        <div class="region-info">
+                            <span class="region-name">${res.name}</span>
+                            <span class="region-ping">${res.ok ? formatPing(res.ms) : "Offline"}</span>
+                        </div>
+                        <button class="btn region-btn" data-url="${res.wssUrl}">Select</button>
+                    `;
+                            row.querySelector(".btn").onclick = () =>
+                                selectUrl(res.wssUrl);
+                            resultsList.appendChild(row);
+                        });
+
+                        if (!saved) selectUrl(best.wssUrl);
+                        else updateUI(saved);
+                    } catch (e) {
+                        statusEl.textContent = "Error loading regions.";
+                    }
+                }
+
+                customBtn.onclick = () => {
+                    const val = customUrlInput.value.trim();
+                    if (val) selectUrl(val);
+                };
+
+                run();
+            })();
+        </script>
+    </body>
+</html>

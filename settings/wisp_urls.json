@@ -1,0 +1,21 @@
+{
+  "base_url": "https://{region}.wisp.q13x.com",
+  "regions": [
+    {
+      "name": "NA - United States (West)",
+      "id": "us-west"
+    },
+    {
+      "name": "NA - United States (East)",
+      "id": "us-east"
+    },
+    {
+      "name": "EU - Germany (Frankfurt)",
+      "id": "eu-central"
+    },
+    {
+      "name": "Southeast Asia - Singapore",
+      "id": "se-asia"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "filename": "assets.epw",
+  "segments": [
+    "assets.epw.0.seg",
+    "assets.epw.1.seg",
+    "assets.epw.2.seg",
+    "assets.epw.3.seg",
+    "assets.epw.4.seg",
+    "assets.epw.5.seg"
+  ],
+  "hash": "6cc53bb09ca2e911ee86deac9fbf6152ef8b3edc573d25d48643d300a738c0f4"
+}
